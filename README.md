@@ -8,4 +8,3 @@ In the project directory, you can run:
 npm install
 npm start
 ```
-## Burger Ordering Web Application
