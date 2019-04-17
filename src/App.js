@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { Component } from 'react';
 import { Route, Switch, withRouter, Redirect } from 'react-router-dom';
 import { connect } from 'react-redux';
 
@@ -10,11 +10,12 @@ import Auth from './containers/Auth/Auth';
 import Logout from './containers/Auth/Logout/Logout';
 import * as actions from './store/actions/index';
 
-const app = props => {
-  useEffect(() => {
-    props.onTryAutoSignup();
-  }, []);
+class App extends Component {
+  componentDidMount () {
+    this.props.onTryAutoSignup();
+  }
 
+  render () {
     let routes = (
       <Switch>
         <Route path="/auth" component={Auth} />
@@ -23,13 +24,12 @@ const app = props => {
       </Switch>
     );
 
-    if (props.isAuthenticated ) {
+    if ( this.props.isAuthenticated ) {
       routes = (
         <Switch>
           <Route path="/checkout" component={Checkout} />
           <Route path="/orders" component={Orders} />
           <Route path="/logout" component={Logout} />
-          <Route path="/auth" component={Auth} />
           <Route path="/" exact component={BurgerBuilder} />
           <Redirect to="/" />
         </Switch>
@@ -43,6 +43,7 @@ const app = props => {
         </Layout>
       </div>
     );
+  }
 }
 
 const mapStateToProps = state => {
@@ -57,4 +58,4 @@ const mapDispatchToProps = dispatch => {
   };
 };
 
-export default withRouter( connect( mapStateToProps, mapDispatchToProps )( app ) );
+export default withRouter( connect( mapStateToProps, mapDispatchToProps )( App ) );

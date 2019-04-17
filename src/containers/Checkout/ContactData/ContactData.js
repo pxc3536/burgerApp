@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
+import React, { Component } from 'react';
 import { connect } from 'react-redux';
 
 import Button from '../../../components/UI/Button/Button';
 import Spinner from '../../../components/UI/Spinner/Spinner';
-import classes from './ContactData.module.css';
+import classes from './ContactData.css';
 import axios from '../../../axios-orders';
 import Input from '../../../components/UI/Input/Input';
 import withErrorHandler from '../../../hoc/withErrorHandler/withErrorHandler'
 import * as actions from '../../../store/actions/index';
-import {updateObject, checkValidity} from '../../../shared/utility';
 
-const contactData = props => {
-    const [orderForm, setOrderForm] = useState({
+class ContactData extends Component {
+    state = {
+        orderForm: {
             name: {
                 elementType: 'input',
                 elementConfig: {
@@ -93,57 +93,88 @@ const contactData = props => {
                 validation: {},
                 valid: true
             }
-        })
-        const [formIsValid, setFormIsValid] = useState(false);
+        },
+        formIsValid: false
+    }
 
-    const orderHandler = ( event ) => {
+    orderHandler = ( event ) => {
         event.preventDefault();
   
         const formData = {};
-        for (let formElementIdentifier in orderForm) {
-            formData[formElementIdentifier] = orderForm[formElementIdentifier].value;
+        for (let formElementIdentifier in this.state.orderForm) {
+            formData[formElementIdentifier] = this.state.orderForm[formElementIdentifier].value;
         }
         const order = {
-            ingredients: props.ings,
-            price: props.price,
+            ingredients: this.props.ings,
+            price: this.props.price,
             orderData: formData,
-            userId: props.userId
+            userId: this.props.userId
         }
 
-        props.onOrderBurger(order, props.token);
+        this.props.onOrderBurger(order, this.props.token);
         
     }
 
-    const inputChangedHandler = (event, inputIdentifier) => {
+    checkValidity(value, rules) {
+        let isValid = true;
+        if (!rules) {
+            return true;
+        }
         
-        const updatedFormElement = updateObject(orderForm[inputIdentifier], {
-            value: event.target.value,
-            valid: checkValidity(event.target.value, this.state.validation),
-            touched: true
-        });
+        if (rules.required) {
+            isValid = value.trim() !== '' && isValid;
+        }
 
-        const updatedOrderForm = updateObject(orderForm, {
-            [inputIdentifier]: updatedFormElement
-        });
+        if (rules.minLength) {
+            isValid = value.length >= rules.minLength && isValid
+        }
 
+        if (rules.maxLength) {
+            isValid = value.length <= rules.maxLength && isValid
+        }
+
+        if (rules.isEmail) {
+            const pattern = /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/;
+            isValid = pattern.test(value) && isValid
+        }
+
+        if (rules.isNumeric) {
+            const pattern = /^\d+$/;
+            isValid = pattern.test(value) && isValid
+        }
+
+        return isValid;
+    }
+
+    inputChangedHandler = (event, inputIdentifier) => {
+        const updatedOrderForm = {
+            ...this.state.orderForm
+        };
+        const updatedFormElement = { 
+            ...updatedOrderForm[inputIdentifier]
+        };
+        updatedFormElement.value = event.target.value;
+        updatedFormElement.valid = this.checkValidity(updatedFormElement.value, updatedFormElement.validation);
+        updatedFormElement.touched = true;
+        updatedOrderForm[inputIdentifier] = updatedFormElement;
+        
         let formIsValid = true;
         for (let inputIdentifier in updatedOrderForm) {
             formIsValid = updatedOrderForm[inputIdentifier].valid && formIsValid;
         }
-        setOrderForm(updatedOrderForm);
-        setFormIsValid(formIsValid)
+        this.setState({orderForm: updatedOrderForm, formIsValid: formIsValid});
     }
 
-
+    render () {
         const formElementsArray = [];
-        for (let key in orderForm) {
+        for (let key in this.state.orderForm) {
             formElementsArray.push({
                 id: key,
-                config: orderForm[key]
+                config: this.state.orderForm[key]
             });
         }
         let form = (
-            <form onSubmit={orderHandler}>
+            <form onSubmit={this.orderHandler}>
                 {formElementsArray.map(formElement => (
                     <Input 
                         key={formElement.id}
@@ -153,12 +184,12 @@ const contactData = props => {
                         invalid={!formElement.config.valid}
                         shouldValidate={formElement.config.validation}
                         touched={formElement.config.touched}
-                        changed={(event) => inputChangedHandler(event, formElement.id)} />
+                        changed={(event) => this.inputChangedHandler(event, formElement.id)} />
                 ))}
-                <Button btnType="Success" disabled={!formIsValid}>ORDER</Button>
+                <Button btnType="Success" disabled={!this.state.formIsValid}>ORDER</Button>
             </form>
         );
-        if ( props.loading ) {
+        if ( this.props.loading ) {
             form = <Spinner />;
         }
         return (
@@ -167,6 +198,7 @@ const contactData = props => {
                 {form}
             </div>
         );
+    }
 }
 
 const mapStateToProps = state => {
@@ -185,4 +217,4 @@ const mapDispatchToProps = dispatch => {
     };
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(withErrorHandler(contactData, axios));
+export default connect(mapStateToProps, mapDispatchToProps)(withErrorHandler(ContactData, axios));
